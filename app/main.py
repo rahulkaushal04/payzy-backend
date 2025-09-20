@@ -8,6 +8,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.exceptions import RequestValidationError, HTTPException
 
 from app.core.config import settings
+from app.api.v1.api import api_router
 from app.core.database import sessionmanager, close_db
 
 # Configure logging
@@ -102,6 +103,10 @@ async def generic_exception_handler(request: Request, exc: Exception):
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "Internal Server Error"},
     )
+
+
+# Include API routes
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 if __name__ == "__main__":

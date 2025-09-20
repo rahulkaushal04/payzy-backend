@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
+from app.core.security import verify_password
 
 
 class UserCRUD:
@@ -17,6 +18,17 @@ class UserCRUD:
         """Get user by email address."""
         result = await db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
+
+    async def authenticate(
+        self, db: AsyncSession, *, email: str, password: str
+    ) -> Optional[User]:
+        """Authenticate user with email and password."""
+        user = await self.get_by_email(db, email=email)
+        if not user:
+            return None
+        if not verify_password(password, user.hashed_password):
+            return None
+        return user
 
     async def is_active(self, user: User) -> bool:
         """Check if user is active."""

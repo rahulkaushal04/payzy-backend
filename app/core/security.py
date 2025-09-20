@@ -3,14 +3,10 @@ from typing import Optional
 from jose import JWTError, jwt
 from app.schemas.auth import TokenData
 from passlib.context import CryptContext
-from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends, HTTPException, status
 from datetime import datetime, timedelta, timezone
 
 from app.core.config import settings
-from app.core.database import get_db
-from app.crud.user import user_crud
 
 logger = logging.getLogger(__name__)
 
@@ -101,38 +97,3 @@ def verify_token(token: str) -> Optional[TokenData]:
     except JWTError as e:
         logger.warning(f"Token verification failed: {str(e)}")
         return None
-
-
-async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
-):
-    """
-    Get current authenticated user from JWT token.
-    """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    token_data = verify_token(token)
-    if token_data is None:
-        raise credentials_exception
-
-    user = await user_crud.get(db, id=token_data.user_id)
-
-    if user is None:
-        logger.warning(f"User {token_data.user_id} not found")
-        raise credentials_exception
-
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
-        )
-
-    return user
-
-
-async def get_current_active_user(current_user=Depends(get_current_user)):
-    """Get current active user (alias for consistency)."""
-    return current_user

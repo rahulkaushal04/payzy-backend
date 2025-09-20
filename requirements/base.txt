@@ -5,9 +5,10 @@ uvicorn[standard]==0.36.0
 sqlalchemy==2.0.43
 asyncpg==0.30.0
 alembic==1.16.5
+greenlet==3.2.4
 
 # Configuration and Environment
-pydantic==2.11.9
+pydantic[email]==2.11.9
 pydantic-settings==2.10.1
 python-dotenv==1.1.1
 
