@@ -1,34 +1,20 @@
-fastapi
-uvicorn[standard]
+fastapi==0.116.2
+uvicorn[standard]==0.36.0
 
 # Database and ORM
-sqlalchemy
-asyncpg
-alembic
-
-# Authentication and Security
-python-jose[cryptography]
-passlib[bcrypt]
-python-multipart
+sqlalchemy==2.0.43
+asyncpg==0.30.0
+alembic==1.16.5
 
 # Configuration and Environment
-pydantic
-pydantic-settings
-python-dotenv
-
-# HTTP and Networking
-httpx
-aiofiles
-
-# Data Validation and Serialization
-email-validator
-
-# Utilities
-python-dateutil
-pytz
-
-# Development and Debugging (only in development)
-rich
+pydantic==2.11.9
+pydantic-settings==2.10.1
+python-dotenv==1.1.1
 
 # Logging and Monitoring
-structlog
+structlog==25.4.0
+
+# Authentication and Security
+python-jose[cryptography]==3.5.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.20
