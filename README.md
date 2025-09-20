@@ -1,1 +1,1 @@
-# SplitEase-backend
+# payzy-backend
