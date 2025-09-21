@@ -18,22 +18,6 @@ class UserBase(BaseModel):
     )
     timezone: str = Field("UTC", max_length=50, description="User's timezone")
 
-    @field_validator("phone")
-    @classmethod
-    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None:
-            # Basic phone validation - adjust regex as needed
-            if not re.match(r"^\+?[1-9]\d{1,14}$", v.replace(" ", "").replace("-", "")):
-                raise ValueError("Invalid phone number format")
-        return v
-
-    @field_validator("currency")
-    @classmethod
-    def validate_currency(cls, v: str) -> str:
-        if not re.match(r"^[A-Z]{3}$", v):
-            raise ValueError("Currency must be 3-letter ISO code (e.g., USD, EUR)")
-        return v
-
 
 class UserCreate(UserBase):
     """Schema for user creation."""

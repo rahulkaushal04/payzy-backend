@@ -106,9 +106,26 @@ async def request_id_middleware(request: Request, call_next):
 # Exception Handlers
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for error in exc.errors():
+        error_detail = {
+            "loc": error.get("loc", []),
+            "msg": str(error.get("msg", "")),
+            "type": error.get("type", ""),
+        }
+        if "input" in error:
+            try:
+                import json
+
+                json.dumps(error["input"])
+                error_detail["input"] = error["input"]
+            except (TypeError, ValueError):
+                pass
+        errors.append(error_detail)
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-        content={"detail": "Validation Error", "errors": exc.errors()},
+        content={"detail": "Validation Error", "errors": errors},
     )
 
 
