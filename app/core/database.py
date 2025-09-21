@@ -90,7 +90,7 @@ class DatabaseSessionManager:
 
     def _get_async_database_url(self) -> str:
         """Convert sync DATABASE_URL to async version."""
-        database_url = str(settings.DATABASE_URL)
+        database_url = settings.effective_database_url
 
         if database_url.startswith("postgresql://"):
             database_url = database_url.replace(

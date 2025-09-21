@@ -9,9 +9,12 @@ from sqlalchemy.ext.asyncio import create_async_engine
 project_root = Path(__file__).parents[1]
 sys.path.insert(0, str(project_root))
 
-# Import application settings and models
+# Import application settings
 from app.core.config import settings
 from app.core.database import Base
+
+# Import application models
+from app.models.user import User
 
 # Alembic Config
 config = context.config
@@ -21,10 +24,10 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Database URL (ensure asyncpg driver is used)
-database_url = str(settings.DATABASE_URL)
+database_url = settings.effective_database_url
 if database_url.startswith("postgresql://"):
     database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-config.set_main_option("sqlalchemy.url", database_url)
+config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 # Target metadata for 'autogenerate'
 target_metadata = Base.metadata
@@ -62,8 +65,7 @@ async def run_migrations_online() -> None:
             )
         )
 
-        async with connection.begin():
-            await connection.run_sync(context.run_migrations)
+        await connection.run_sync(lambda sync_conn: context.run_migrations())
 
 
 if context.is_offline_mode():

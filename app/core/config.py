@@ -1,9 +1,10 @@
 import os
 import secrets
+from sqlalchemy import URL
 from functools import lru_cache
 from typing import Union, Literal, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, PostgresDsn, AnyHttpUrl, field_validator
+from pydantic import Field, PostgresDsn, AnyHttpUrl, field_validator, computed_field
 
 
 class Settings(BaseSettings):
@@ -50,9 +51,20 @@ class Settings(BaseSettings):
     PASSWORD_MIN_LENGTH: int = Field(default=8, ge=6, le=128)
 
     # Database Configuration
-    DATABASE_URL: PostgresDsn = Field(
-        default="postgresql://user:password@localhost/expense_tracker",
-        description="PostgreSQL database URL",
+    DATABASE_URL: Optional[PostgresDsn] = Field(
+        default=None,
+        description="PostgreSQL database URL (overrides individual settings if provided)",
+    )
+    DB_HOST: Optional[str] = Field(default=None, description="Database host")
+    DB_PORT: Optional[int] = Field(
+        default=None, ge=1, le=65535, description="Database port"
+    )
+    DB_USER: Optional[str] = Field(default=None, description="Database username")
+    DB_PASSWORD: Optional[str] = Field(default=None, description="Database password")
+    DB_NAME: Optional[str] = Field(default=None, description="Database name")
+    DB_DRIVER: Optional[Literal["postgresql"]] = Field(
+        default="postgresql",
+        description="Database driver",
     )
     DB_POOL_SIZE: int = Field(default=10, ge=1, le=50)
     DB_MAX_OVERFLOW: int = Field(default=20, ge=0, le=100)
@@ -166,6 +178,23 @@ class Settings(BaseSettings):
                 f"ENVIRONMENT must be one of: {', '.join(valid_environments)}"
             )
         return v.lower()
+
+    @computed_field
+    @property
+    def effective_database_url(self) -> str:
+        if self.DATABASE_URL:
+            return str(self.DATABASE_URL)
+        else:
+            str(
+                URL.create(
+                    drivername=self.DB_DRIVER,
+                    username=self.DB_USER,
+                    password=self.DB_PASSWORD,
+                    host=self.DB_HOST,
+                    port=self.DB_PORT,
+                    database=self.DB_NAME,
+                )
+            )
 
     # Computed properties for environment checks
     @property
