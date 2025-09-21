@@ -5,10 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta, timezone, datetime
 
 from app.core.config import settings
-from app.schemas.user import UserCreate
 from app.crud.user import User, user_crud
 from app.core.security import create_access_token
 from app.schemas.auth import LoginRequest, LoginResponse
+from app.schemas.user import UserRegistrationRequest, UserRegistrationResponse
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 class AuthService:
     """Authentication service class."""
 
-    async def register_user(self, db: AsyncSession, user_data: UserCreate) -> User:
+    async def register_user(
+        self, db: AsyncSession, user_data: UserRegistrationRequest
+    ) -> UserRegistrationResponse:
         """
         Register a new user.
 
@@ -31,11 +33,9 @@ class AuthService:
             HTTPException: If registration fails
         """
         try:
-            # Create user using CRUD
             user = await user_crud.create(db, obj_in=user_data)
             logger.info(f"New user registered: {user.email}")
-            return user
-
+            return UserRegistrationResponse.model_validate(user.to_dict())
         except HTTPException:
             raise
         except Exception as e:

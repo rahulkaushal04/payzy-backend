@@ -5,27 +5,22 @@ from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
-from app.schemas.user import UserCreate
+from app.schemas.user import UserRegistrationRequest
 from app.core.security import verify_password, create_password_hash
 
 
 class UserCRUD:
     """User CRUD operations class."""
 
-    async def create(self, db: AsyncSession, *, obj_in: UserCreate) -> User:
-        """Create new user."""
+    async def create(
+        self, db: AsyncSession, *, obj_in: UserRegistrationRequest
+    ) -> User:
         # Check if user already exists
         existing_user = await self.get_by_email(db, email=obj_in.email)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered",
-            )
-
-        # Validate password confirmation
-        if obj_in.password != obj_in.confirm_password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match"
             )
 
         # Create user
@@ -71,10 +66,6 @@ class UserCRUD:
     async def is_active(self, user: User) -> bool:
         """Check if user is active."""
         return user.is_active
-
-    async def is_superuser(self, user: User) -> bool:
-        """Check if user is superuser."""
-        return user.is_superuser
 
 
 # Create global instance

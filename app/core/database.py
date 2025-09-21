@@ -1,9 +1,11 @@
 import logging
-from sqlalchemy import MetaData, event
-from sqlalchemy.orm import DeclarativeBase
+from decimal import Decimal
+from datetime import datetime, date
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Optional
+from sqlalchemy import MetaData, event, inspect
+from typing import AsyncGenerator, Optional, Any
 from sqlalchemy.pool import AsyncAdaptedQueuePool
+from sqlalchemy.orm import DeclarativeBase, Mapper
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     AsyncEngine,
@@ -15,6 +17,78 @@ from sqlalchemy.ext.asyncio import (
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _serialize_value(value: Any):
+    if value is None:
+        return None
+    elif isinstance(value, (datetime, date)):
+        return value.isoformat()
+    elif isinstance(value, Decimal):
+        return float(value)
+    elif hasattr(value, "__dict__"):
+        return str(value)
+    else:
+        return value
+
+
+def model_to_dict(
+    model: Any,
+    exclude_columns: Optional[set[str]] = None,
+    include_relationships: bool = False,
+    max_depth: int = 1,
+    _current_depth: int = 0,
+):
+    if model is None:
+        return {}
+
+    exclude_columns = exclude_columns or set()
+    result = {}
+
+    mapper: Mapper[Any] = inspect(model.__class__)
+
+    for column in mapper.columns:
+        column_name = column.name
+
+        if column_name not in exclude_columns:
+            try:
+                value = getattr(model, column_name)
+                result[column_name] = _serialize_value(value)
+            except AttributeError:
+                continue
+
+        if include_relationships and _current_depth < max_depth:
+            for relationship in mapper.relationships:
+                rel_name = relationship.key
+                if rel_name not in exclude_columns:
+                    try:
+                        rel_value = getattr(model, rel_name)
+                        if rel_value is None:
+                            result[rel_name] = None
+                        elif hasattr(rel_value, "__iter__") and not isinstance(
+                            rel_value, (str, bytes)
+                        ):
+                            result[rel_name] = [
+                                model_to_dict(
+                                    item,
+                                    exclude_columns=exclude_columns,
+                                    include_relationships=include_relationships,
+                                    max_depth=max_depth,
+                                    _current_depth=_current_depth + 1,
+                                )
+                                for item in rel_value
+                            ]
+                        else:
+                            result[rel_name] = model_to_dict(
+                                rel_value,
+                                exclude_columns=exclude_columns,
+                                include_relationships=include_relationships,
+                                max_depth=max_depth,
+                                _current_depth=_current_depth + 1,
+                            )
+                    except AttributeError:
+                        continue
+    return result
 
 
 class Base(DeclarativeBase):
@@ -31,6 +105,21 @@ class Base(DeclarativeBase):
             "pk": "pk_%(table_name)s",
         }
     )
+
+    def to_dict(
+        self,
+        exclude_columns: Optional[set[str]] = None,
+        include_relationships: bool = False,
+        max_depth: int = 1,
+        _current_depth: int = 0,
+    ):
+        return model_to_dict(
+            self,
+            exclude_columns=exclude_columns,
+            include_relationships=include_relationships,
+            max_depth=max_depth,
+            _current_depth=_current_depth,
+        )
 
 
 class DatabaseSessionManager:

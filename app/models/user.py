@@ -31,9 +31,6 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(
         Boolean, server_default="true", nullable=False
     )
-    is_superuser: Mapped[bool] = mapped_column(
-        Boolean, server_default="false", nullable=False
-    )
     is_verified: Mapped[bool] = mapped_column(
         Boolean, server_default="false", nullable=False
     )
@@ -57,7 +54,7 @@ class User(Base):
 
     # Preferences
     currency: Mapped[str] = mapped_column(
-        String(3), server_default="USD", nullable=False
+        String(3), server_default="INR", nullable=False
     )
     timezone: Mapped[str] = mapped_column(
         String(50), server_default="UTC", nullable=False

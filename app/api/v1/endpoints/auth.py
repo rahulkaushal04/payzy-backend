@@ -6,17 +6,22 @@ from fastapi import APIRouter, Depends, status, Request
 from app.core.database import get_db
 from app.services.auth_service import auth_service
 from app.schemas.auth import LoginRequest, LoginResponse
-from app.schemas.user import UserCreate, User as UserSchema
+from app.schemas.user import UserRegistrationRequest, UserRegistrationResponse
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
 
 
 @router.post(
-    "/register", response_model=UserSchema, status_code=status.HTTP_201_CREATED
+    "/register",
+    response_model=UserRegistrationResponse,
+    status_code=status.HTTP_201_CREATED,
 )
 async def register(
-    *, request: Request, db: AsyncSession = Depends(get_db), user_in: UserCreate
+    *,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user_in: UserRegistrationRequest
 ) -> Any:
     """
     Register a new user account.
