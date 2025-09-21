@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta, timezone, datetime
 
 from app.core.config import settings
+from app.schemas.user import UserCreate
 from app.crud.user import User, user_crud
 from app.core.security import create_access_token
 from app.schemas.auth import LoginRequest, LoginResponse
@@ -14,6 +15,35 @@ logger = logging.getLogger(__name__)
 
 class AuthService:
     """Authentication service class."""
+
+    async def register_user(self, db: AsyncSession, user_data: UserCreate) -> User:
+        """
+        Register a new user.
+
+        Args:
+            db: Database session
+            user_data: User registration data
+
+        Returns:
+            Created user object
+
+        Raises:
+            HTTPException: If registration fails
+        """
+        try:
+            # Create user using CRUD
+            user = await user_crud.create(db, obj_in=user_data)
+            logger.info(f"New user registered: {user.email}")
+            return user
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"User registration failed: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Registration failed",
+            )
 
     async def authenticate_user(
         self, db: AsyncSession, login_data: LoginRequest

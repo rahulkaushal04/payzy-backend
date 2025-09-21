@@ -1,13 +1,51 @@
+from fastapi import status
 from typing import Optional
 from sqlalchemy import select
+from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
-from app.core.security import verify_password
+from app.schemas.user import UserCreate
+from app.core.security import verify_password, create_password_hash
 
 
 class UserCRUD:
     """User CRUD operations class."""
+
+    async def create(self, db: AsyncSession, *, obj_in: UserCreate) -> User:
+        """Create new user."""
+        # Check if user already exists
+        existing_user = await self.get_by_email(db, email=obj_in.email)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered",
+            )
+
+        # Validate password confirmation
+        if obj_in.password != obj_in.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match"
+            )
+
+        # Create user
+        hashed_password = create_password_hash(obj_in.password)
+        db_user = User(
+            email=obj_in.email,
+            full_name=obj_in.full_name,
+            hashed_password=hashed_password,
+            phone=obj_in.phone,
+            bio=obj_in.bio,
+            currency=obj_in.currency,
+            timezone=obj_in.timezone,
+            is_active=True,
+            is_verified=False,
+        )
+
+        db.add(db_user)
+        await db.commit()
+        await db.refresh(db_user)
+        return db_user
 
     async def get(self, db: AsyncSession, *, id: int) -> Optional[User]:
         """Get user by ID."""
