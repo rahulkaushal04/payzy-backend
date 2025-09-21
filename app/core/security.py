@@ -1,4 +1,5 @@
 import logging
+import structlog
 from typing import Optional
 from jose import JWTError, jwt
 from app.schemas.auth import TokenData
@@ -8,7 +9,8 @@ from datetime import datetime, timedelta, timezone
 
 from app.core.config import settings
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
+logging.getLogger("passlib").setLevel(logging.ERROR)
 
 # Password hashing context
 pwd_context = CryptContext(
