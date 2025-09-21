@@ -1,5 +1,5 @@
 import time
-import logging
+import structlog
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Request, status
@@ -8,15 +8,14 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.exceptions import RequestValidationError, HTTPException
 
 from app.core.config import settings
+from app.core.logging import configure_logging
+from app.core.request_context import generate_request_id
+
 from app.api.v1.api import api_router
 from app.core.database import sessionmanager, close_db
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+configure_logging(settings.LOG_LEVEL)
+logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
@@ -70,13 +69,38 @@ if settings.BACKEND_CORS_ORIGINS:
 
 
 @app.middleware("http")
-async def process_time_middleware(request: Request, call_next):
-    """Add response time header."""
+async def request_id_middleware(request: Request, call_next):
+    """Add request ID to all requests and responses."""
+    request_id = request.headers.get("X-Request-ID", generate_request_id())
+    logger.info(
+        "request_started",
+        method=request.method,
+        path=request.url.path,
+        client_host=request.client.host if request.client else None,
+    )
     start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
+    try:
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        response.headers["X-Process-Time"] = str(process_time)
+        response.headers["X-Request-ID"] = request_id
+        logger.info(
+            "request_completed",
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            process_time=process_time,
+        )
+        return response
+    except Exception as e:
+        logger.error(
+            "request_failed",
+            method=request.method,
+            path=request.url.path,
+            error=str(e),
+            exc_info=True,
+        )
+        raise
 
 
 # Exception Handlers
