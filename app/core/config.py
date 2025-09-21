@@ -149,52 +149,22 @@ class Settings(BaseSettings):
                 pass
         return v if isinstance(v, list) else []
 
-    @field_validator("SECRET_KEY")
-    @classmethod
-    def validate_secret_key(cls, v: str) -> str:
-        """Ensure secret key meets minimum security requirements."""
-        if len(v) < 32:
-            raise ValueError("SECRET_KEY must be at least 32 characters long")
-        return v
-
-    @field_validator("DATABASE_URL")
-    @classmethod
-    def validate_database_url(cls, v: Union[str, PostgresDsn]) -> str:
-        """Validate and ensure database URL is properly formatted."""
-        if isinstance(v, str):
-            if not v.startswith(
-                ("postgresql://", "postgresql+asyncpg://", "postgresql+psycopg2://")
-            ):
-                raise ValueError("DATABASE_URL must be a valid PostgreSQL URL")
-        return str(v)
-
-    @field_validator("ENVIRONMENT")
-    @classmethod
-    def validate_environment(cls, v: str) -> str:
-        """Validate environment setting."""
-        valid_environments = {"development", "testing", "staging", "production"}
-        if v.lower() not in valid_environments:
-            raise ValueError(
-                f"ENVIRONMENT must be one of: {', '.join(valid_environments)}"
-            )
-        return v.lower()
-
     @computed_field
     @property
     def effective_database_url(self) -> str:
         if self.DATABASE_URL:
-            return str(self.DATABASE_URL)
-        else:
-            str(
-                URL.create(
-                    drivername=self.DB_DRIVER,
-                    username=self.DB_USER,
-                    password=self.DB_PASSWORD,
-                    host=self.DB_HOST,
-                    port=self.DB_PORT,
-                    database=self.DB_NAME,
-                )
-            )
+            return self.DATABASE_URL
+        elif all(
+            [self.DB_USER, self.DB_PASSWORD, self.DB_HOST, self.DB_PORT, self.DB_NAME]
+        ):
+            return URL.create(
+                drivername=self.DB_DRIVER,
+                username=self.DB_USER,
+                password=self.DB_PASSWORD,
+                host=self.DB_HOST,
+                port=self.DB_PORT,
+                database=self.DB_NAME,
+            ).render_as_string(hide_password=False)
 
     # Computed properties for environment checks
     @property
