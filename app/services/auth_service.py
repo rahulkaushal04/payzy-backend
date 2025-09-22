@@ -4,11 +4,12 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta, timezone, datetime
 
+from app.dao.user import user_crud
 from app.core.config import settings
-from app.crud.user import User, user_crud
+from app.entity.user import UserEntity
 from app.core.security import create_access_token
-from app.schemas.auth import LoginRequest, LoginResponse
-from app.schemas.user import UserRegistrationRequest, UserRegistrationResponse
+from app.dto.auth import LoginRequest, LoginResponse
+from app.dto.user import UserRegistrationRequest, UserRegistrationResponse
 
 logger = logging.getLogger(__name__)
 
@@ -105,12 +106,12 @@ class AuthService:
             },
         )
 
-    async def _update_last_login(self, db: AsyncSession, user: User) -> None:
+    async def _update_last_login(self, db: AsyncSession, user: UserEntity) -> None:
         """Update user's last login timestamp."""
         try:
             stmt = (
-                update(User)
-                .where(User.id == user.id)
+                update(UserEntity)
+                .where(UserEntity.id == user.id)
                 .values(last_login=datetime.now(timezone.utc))
             )
             await db.execute(stmt)

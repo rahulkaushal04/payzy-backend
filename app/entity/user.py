@@ -9,7 +9,7 @@ from sqlalchemy import String, Boolean, DateTime, Integer, Text
 from app.core.database import Base
 
 
-class User(Base):
+class UserEntity(Base):
     __tablename__ = "users"
 
     # Primary key

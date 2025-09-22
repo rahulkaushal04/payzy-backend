@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.logging import configure_logging
 from app.core.request_context import generate_request_id
 
-from app.api.v1.api import api_router
+from app.router import routes
 from app.core.database import sessionmanager, close_db
 
 configure_logging(settings.LOG_LEVEL)
@@ -147,8 +147,10 @@ async def generic_exception_handler(request: Request, exc: Exception):
 
 
 # Include API routes
-app.include_router(api_router, prefix=settings.API_V1_STR)
-
+for route in routes:
+    app.include_router(
+        router=route["router"], prefix="/v1" + route["prefix"], tags=route["tags"]
+    )
 
 if __name__ == "__main__":
     import uvicorn

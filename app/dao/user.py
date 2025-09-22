@@ -4,8 +4,8 @@ from sqlalchemy import select
 from fastapi.exceptions import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User
-from app.schemas.user import UserRegistrationRequest
+from app.entity.user import UserEntity
+from app.dto.user import UserRegistrationRequest
 from app.core.security import verify_password, create_password_hash
 
 
@@ -14,7 +14,7 @@ class UserCRUD:
 
     async def create(
         self, db: AsyncSession, *, obj_in: UserRegistrationRequest
-    ) -> User:
+    ) -> UserEntity:
         # Check if user already exists
         existing_user = await self.get_by_email(db, email=obj_in.email)
         if existing_user:
@@ -25,7 +25,7 @@ class UserCRUD:
 
         # Create user
         hashed_password = create_password_hash(obj_in.password)
-        db_user = User(
+        db_user = UserEntity(
             email=obj_in.email,
             full_name=obj_in.full_name,
             hashed_password=hashed_password,
@@ -42,19 +42,21 @@ class UserCRUD:
         await db.refresh(db_user)
         return db_user
 
-    async def get(self, db: AsyncSession, *, id: int) -> Optional[User]:
+    async def get(self, db: AsyncSession, *, id: int) -> Optional[UserEntity]:
         """Get user by ID."""
-        result = await db.execute(select(User).where(User.id == id))
+        result = await db.execute(select(UserEntity).where(UserEntity.id == id))
         return result.scalar_one_or_none()
 
-    async def get_by_email(self, db: AsyncSession, *, email: str) -> Optional[User]:
+    async def get_by_email(
+        self, db: AsyncSession, *, email: str
+    ) -> Optional[UserEntity]:
         """Get user by email address."""
-        result = await db.execute(select(User).where(User.email == email))
+        result = await db.execute(select(UserEntity).where(UserEntity.email == email))
         return result.scalar_one_or_none()
 
     async def authenticate(
         self, db: AsyncSession, *, email: str, password: str
-    ) -> Optional[User]:
+    ) -> Optional[UserEntity]:
         """Authenticate user with email and password."""
         user = await self.get_by_email(db, email=email)
         if not user:
@@ -63,7 +65,7 @@ class UserCRUD:
             return None
         return user
 
-    async def is_active(self, user: User) -> bool:
+    async def is_active(self, user: UserEntity) -> bool:
         """Check if user is active."""
         return user.is_active
 

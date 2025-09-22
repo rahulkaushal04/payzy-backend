@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.core.database import Base
 
 # Import application models
-from app.models.user import User
+from app.entity.user import UserEntity
 
 # Alembic Config
 config = context.config
@@ -58,7 +58,7 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, 
+            connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
             compare_server_default=True,

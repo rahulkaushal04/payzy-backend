@@ -2,7 +2,7 @@ import logging
 import structlog
 from typing import Optional
 from jose import JWTError, jwt
-from app.schemas.auth import TokenData
+from app.dto.auth import TokenData
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone
