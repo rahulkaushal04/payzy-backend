@@ -27,8 +27,8 @@ async def register(
     The user account will be created but not verified initially.
     """
     logger.info("register_endpoint_called", email=user_in.email)
-    user = await auth_service.register_user(db, user_in)
-    return user
+    responnse = await auth_service.register_user(db, user_in)
+    return responnse
 
 
 @auth_router.post("/login", response_model=LoginResponse)

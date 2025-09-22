@@ -81,7 +81,7 @@ class UserRegistrationRequest(UserBase):
 class UserRegistrationResponse(UserBase):
     """Public user schema (excludes sensitive data)."""
 
-    public_id: uuid.UUID = Field(..., examples=["550e8400-e29b-41d4-a716-446655440000"])
+    user_id: uuid.UUID = Field(..., examples=["550e8400-e29b-41d4-a716-446655440000"])
     is_active: bool = Field(..., examples=[True])
     is_verified: bool = Field(..., examples=[False])
     created_at: datetime = Field(..., examples=["2024-01-15T10:30:00"])
