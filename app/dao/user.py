@@ -38,8 +38,7 @@ class UserCRUD:
         )
 
         db.add(db_user)
-        await db.commit()
-        await db.refresh(db_user)
+        await db.flush()
         return db_user
 
     async def get(self, db: AsyncSession, *, id: int) -> Optional[UserEntity]:
