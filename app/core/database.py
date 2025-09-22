@@ -1,11 +1,12 @@
 import logging
 from decimal import Decimal
+from sqlalchemy.sql import func
 from datetime import datetime, date
 from contextlib import asynccontextmanager
-from sqlalchemy import MetaData, event, inspect
 from typing import AsyncGenerator, Optional, Any
 from sqlalchemy.pool import AsyncAdaptedQueuePool
-from sqlalchemy.orm import DeclarativeBase, Mapper
+from sqlalchemy import MetaData, event, inspect, DateTime
+from sqlalchemy.orm import DeclarativeBase, Mapper, mapped_column, Mapped
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     AsyncEngine,
@@ -104,6 +105,16 @@ class Base(DeclarativeBase):
             "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
             "pk": "pk_%(table_name)s",
         }
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )
 
     def to_dict(
