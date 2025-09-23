@@ -46,7 +46,7 @@ class UserEntity(Base):
         String(3), server_default="INR", nullable=False
     )
     timezone: Mapped[str] = mapped_column(
-        String(50), server_default="UTC", nullable=False
+        String(50), server_default="Asia/Kolkata", nullable=False
     )
 
     def __repr__(self) -> str:

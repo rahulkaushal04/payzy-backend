@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7818ffe024c3
+Revision ID: aa0455be119f
 Revises:
-Create Date: 2025-09-22 23:26:33.809162
+Create Date: 2025-09-23 21:26:09.414112
 
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "7818ffe024c3"
+revision: str = "aa0455be119f"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -38,7 +38,10 @@ def upgrade() -> None:
             "currency", sa.String(length=3), server_default="INR", nullable=False
         ),
         sa.Column(
-            "timezone", sa.String(length=50), server_default="UTC", nullable=False
+            "timezone",
+            sa.String(length=50),
+            server_default="Asia/Kolkata",
+            nullable=False,
         ),
         sa.Column(
             "created_at",

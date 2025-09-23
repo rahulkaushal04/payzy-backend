@@ -5,8 +5,8 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, model_validator, field_validator
 
 
-class UserBase(BaseModel):
-    """Base user schema with common fields."""
+class UserRegistrationRequest(BaseModel):
+    """Schema for user creation."""
 
     email: EmailStr = Field(
         ..., description="User's email address", examples=["john.doe@example.com"]
@@ -35,16 +35,11 @@ class UserBase(BaseModel):
         examples=["INR", "USD", "EUR"],
     )
     timezone: str = Field(
-        "UTC",
+        "Asia/Kolkata",
         max_length=50,
         description="User's timezone",
         examples=["Asia/Kolkata", "America/New_York", "UTC"],
     )
-
-
-class UserRegistrationRequest(UserBase):
-    """Schema for user creation."""
-
     password: str = Field(
         ...,
         min_length=8,
@@ -78,11 +73,25 @@ class UserRegistrationRequest(UserBase):
         return self
 
 
-class UserRegistrationResponse(UserBase):
-    """Public user schema (excludes sensitive data)."""
+class UserResponse(BaseModel):
+    """Public user schema (all fields optional, default None)."""
 
-    user_id: uuid.UUID = Field(..., examples=["550e8400-e29b-41d4-a716-446655440000"])
-    is_active: bool = Field(..., examples=[True])
-    is_verified: bool = Field(..., examples=[False])
-    created_at: datetime = Field(..., examples=["2024-01-15T10:30:00"])
-    updated_at: datetime = Field(..., examples=["2024-01-20T14:45:00"])
+    user_id: Optional[uuid.UUID] = Field(
+        None, examples=["550e8400-e29b-41d4-a716-446655440000"]
+    )
+    email: Optional[EmailStr] = Field(
+        None, description="User's email address", examples=["john.doe@example.com"]
+    )
+    full_name: Optional[str] = Field(None, examples=["John Doe"])
+    phone: Optional[str] = Field(None, examples=["+91-9876543210"])
+    bio: Optional[str] = Field(
+        None, examples=["Software developer passionate about fintech solutions"]
+    )
+    currency: Optional[str] = Field(None, examples=["INR", "USD", "EUR"])
+    timezone: Optional[str] = Field(
+        None, examples=["Asia/Kolkata", "America/New_York", "UTC"]
+    )
+    is_active: Optional[bool] = Field(None, examples=[True])
+    is_verified: Optional[bool] = Field(None, examples=[False])
+    created_at: Optional[datetime] = Field(None, examples=["2024-01-15T10:30:00"])
+    updated_at: Optional[datetime] = Field(None, examples=["2024-01-20T14:45:00"])

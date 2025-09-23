@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.entity.user import UserEntity
 from app.core.security import create_access_token
 from app.dto.auth import LoginRequest, LoginResponse
-from app.dto.user import UserRegistrationRequest, UserRegistrationResponse
+from app.dto.user import UserRegistrationRequest, UserResponse
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class AuthService:
 
     async def register_user(
         self, db: AsyncSession, user_data: UserRegistrationRequest
-    ) -> UserRegistrationResponse:
+    ) -> UserResponse:
         """
         Register a new user.
 
@@ -36,7 +36,9 @@ class AuthService:
         try:
             user = await user_crud.create(db, obj_in=user_data)
             logger.info(f"New user registered: {user.email}")
-            return UserRegistrationResponse.model_validate(user.to_dict())
+            return UserResponse.model_validate(user.to_dict()).model_dump(
+                mode="json", exclude_none=True
+            )
         except HTTPException:
             raise
         except Exception as e:
@@ -83,7 +85,7 @@ class AuthService:
         # Generate access token
         access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
-            subject=user.id, expires_delta=access_token_expires
+            user_id=user.user_id, expires_delta=access_token_expires
         )
 
         # Update last login
@@ -95,29 +97,23 @@ class AuthService:
             access_token=access_token,
             token_type="bearer",
             expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
-            user={
-                "id": user.id,
-                "email": user.email,
-                "full_name": user.full_name,
-                "is_active": user.is_active,
-                "is_verified": user.is_verified,
-                "currency": user.currency,
-                "timezone": user.timezone,
-            },
-        )
+            user=UserResponse.model_validate(user.to_dict()),
+        ).model_dump(mode="json", exclude_none=True)
 
     async def _update_last_login(self, db: AsyncSession, user: UserEntity) -> None:
         """Update user's last login timestamp."""
         try:
             stmt = (
                 update(UserEntity)
-                .where(UserEntity.id == user.id)
+                .where(UserEntity.user_id == user.user_id)
                 .values(last_login=datetime.now(timezone.utc))
             )
             await db.execute(stmt)
-            await db.commit()
+            await db.flush()
         except Exception as e:
-            logger.warning(f"Failed to update last login for user {user.id}: {str(e)}")
+            logger.warning(
+                f"Failed to update last login for user {user.user_id}: {str(e)}"
+            )
 
 
 # Create global instance

@@ -63,7 +63,7 @@ def create_access_token(user_id: int, expires_delta: Optional[timedelta] = None)
     }
 
     encoded_jwt = jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+        claims=to_encode, key=settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
     return encoded_jwt
 
