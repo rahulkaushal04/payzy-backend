@@ -1,3 +1,4 @@
+import uuid
 from fastapi import status
 from typing import Optional
 from sqlalchemy import select
@@ -41,9 +42,13 @@ class UserDao:
         await db.flush()
         return db_user
 
-    async def get(self, db: AsyncSession, *, id: int) -> Optional[UserEntity]:
+    async def get(
+        self, db: AsyncSession, *, user_id: uuid.UUID
+    ) -> Optional[UserEntity]:
         """Get user by ID."""
-        result = await db.execute(select(UserEntity).where(UserEntity.user_id == id))
+        result = await db.execute(
+            select(UserEntity).where(UserEntity.user_id == user_id)
+        )
         return result.scalar_one_or_none()
 
     async def get_by_email(

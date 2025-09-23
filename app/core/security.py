@@ -4,7 +4,6 @@ from typing import Optional
 from jose import JWTError, jwt
 from app.dto.auth import TokenData
 from passlib.context import CryptContext
-from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone
 
 from app.core.config import settings
@@ -17,12 +16,6 @@ pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto",
     bcrypt__rounds=12,  # higher rounds for better security
-)
-
-# OAuth2 scheme for token extraction
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/auth/login",
-    scheme_name="JWT",
 )
 
 

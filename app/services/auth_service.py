@@ -1,17 +1,25 @@
 import logging
 from sqlalchemy import update
-from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import OAuth2PasswordBearer
+from fastapi import HTTPException, status, Depends
 from datetime import timedelta, timezone, datetime
 
 from app.dao.user import user_dao
 from app.core.config import settings
+from app.core.database import get_db
 from app.entity.user import UserEntity
-from app.core.security import create_access_token
 from app.dto.auth import LoginRequest, LoginResponse
 from app.dto.user import UserRegistrationRequest, UserResponse
+from app.core.security import create_access_token, verify_token
 
 logger = logging.getLogger(__name__)
+
+# OAuth2 scheme for token extraction
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/auth/login",
+    scheme_name="JWT",
+)
 
 
 class AuthService:
@@ -127,6 +135,49 @@ class AuthService:
         except Exception as e:
             logger.warning(
                 f"Failed to update last login for user {user.user_id}: {str(e)}"
+            )
+
+    async def get_current_user(
+        self, token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
+    ) -> UserEntity:
+        """
+        Get current authenticated user from JWT token.
+
+        This dependency can be used to protect endpoints that require authentication.
+        """
+        logger.info(f"token: {token}")
+        try:
+            credentials_exception = HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+            token_data = verify_token(token)
+            if token_data is None:
+                logger.warning("Invalid token provided")
+                raise credentials_exception
+
+            user = await user_dao.get(db, user_id=token_data.user_id)
+            if user is None:
+                logger.warning(f"User {token_data.user_id} not found")
+                raise credentials_exception
+
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
+                )
+
+            return user
+
+        except HTTPException:
+            raise
+
+        except Exception as e:
+            logger.error(f"User Login failed: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Login failed",
             )
 
 
