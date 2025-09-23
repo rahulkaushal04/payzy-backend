@@ -1,8 +1,8 @@
 import structlog
 from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import APIRouter, Depends, status, Header
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.core.database import get_db
 from app.entity.user import UserEntity
@@ -12,6 +12,9 @@ from app.dto.user import UserRegistrationRequest, UserResponse
 
 auth_router = APIRouter()
 logger = structlog.get_logger(__name__)
+
+# Security Scheme for Swagger UI
+security = HTTPBearer()
 
 
 @auth_router.post(
@@ -47,12 +50,13 @@ async def login(*, db: AsyncSession = Depends(get_db), login_data: LoginRequest)
 @auth_router.get("/me", response_model=UserResponse)
 async def get_current_user_info(
     db: AsyncSession = Depends(get_db),
-    authorization: str = Header(...),
-):
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> UserResponse:
     """
     Get current user information.
 
     Returns detailed information about the currently authenticated user.
     """
-    response = auth_service.get_current_user(db, authorization)
+    token = credentials.credentials
+    response = await auth_service.get_current_user(db, token)
     return response
