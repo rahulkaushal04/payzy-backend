@@ -1,7 +1,8 @@
 import structlog
 from typing import Any
-from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, status, Header
 
 from app.core.database import get_db
 from app.entity.user import UserEntity
@@ -45,11 +46,13 @@ async def login(*, db: AsyncSession = Depends(get_db), login_data: LoginRequest)
 
 @auth_router.get("/me", response_model=UserResponse)
 async def get_current_user_info(
-    current_user: UserEntity = Depends(auth_service.get_current_user),
-) -> Any:
+    db: AsyncSession = Depends(get_db),
+    authorization: str = Header(...),
+):
     """
     Get current user information.
 
     Returns detailed information about the currently authenticated user.
     """
-    return current_user
+    response = auth_service.get_current_user(db, authorization)
+    return response

@@ -1,3 +1,4 @@
+import uuid
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 from app.dto.user import UserResponse
@@ -6,9 +7,15 @@ from app.dto.user import UserResponse
 class LoginRequest(BaseModel):
     """User login request schema."""
 
-    email: EmailStr = Field(..., description="User's email address")
+    email: EmailStr = Field(
+        ..., description="User's email address", examples=["john.doe@example.com"]
+    )
     password: str = Field(
-        ..., min_length=8, max_length=100, description="User's password"
+        ...,
+        min_length=8,
+        max_length=100,
+        description="User's password",
+        examples=["SecurePass123"],
     )
 
 
@@ -32,7 +39,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     """Token payload data schema."""
 
-    user_id: int
+    user_id: uuid.UUID
 
 
 class PasswordChangeRequest(BaseModel):

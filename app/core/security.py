@@ -1,3 +1,4 @@
+import uuid
 import logging
 import structlog
 from typing import Optional
@@ -33,7 +34,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(user_id: int, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    user_id: uuid.UUID, expires_delta: Optional[timedelta] = None
+) -> str:
     """
     Create JWT access token.
 
@@ -87,8 +90,12 @@ def verify_token(token: str) -> Optional[TokenData]:
             logger.warning("Invalid token type")
             return None
 
-        return TokenData(user_id=int(user_id))
+        return TokenData(user_id=uuid.UUID(user_id))
 
     except JWTError as e:
         logger.warning(f"Token verification failed: {str(e)}")
+        return None
+
+    except ValueError as e:
+        logger.warning(f"Invalid UUID in token: {str(e)}")
         return None
