@@ -1,11 +1,10 @@
 import structlog
 from typing import Any
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.core.database import get_db
-from app.entity.user import UserEntity
 from app.services.auth_service import auth_service
 from app.dto.auth import LoginRequest, LoginResponse
 from app.dto.user import UserRegistrationRequest, UserResponse
@@ -47,7 +46,7 @@ async def login(*, db: AsyncSession = Depends(get_db), login_data: LoginRequest)
     return await auth_service.authenticate_user(db, login_data)
 
 
-@auth_router.get("/me", response_model=UserResponse)
+@auth_router.get("/verify-token", response_model=UserResponse)
 async def get_current_user_info(
     db: AsyncSession = Depends(get_db),
     credentials: HTTPAuthorizationCredentials = Depends(security),
