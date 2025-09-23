@@ -9,8 +9,8 @@ from app.dto.user import UserRegistrationRequest
 from app.core.security import verify_password, create_password_hash
 
 
-class UserCRUD:
-    """User CRUD operations class."""
+class UserDao:
+    """User operations class."""
 
     async def create(
         self, db: AsyncSession, *, obj_in: UserRegistrationRequest
@@ -43,7 +43,7 @@ class UserCRUD:
 
     async def get(self, db: AsyncSession, *, id: int) -> Optional[UserEntity]:
         """Get user by ID."""
-        result = await db.execute(select(UserEntity).where(UserEntity.id == id))
+        result = await db.execute(select(UserEntity).where(UserEntity.user_id == id))
         return result.scalar_one_or_none()
 
     async def get_by_email(
@@ -70,4 +70,4 @@ class UserCRUD:
 
 
 # Create global instance
-user_crud = UserCRUD()
+user_dao = UserDao()

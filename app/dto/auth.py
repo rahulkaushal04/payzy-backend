@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
+from app.dto.user import UserResponse
+
 
 class LoginRequest(BaseModel):
     """User login request schema."""
@@ -16,7 +18,7 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
-    user: dict = Field(description="Basic user information")
+    user: UserResponse = Field(description="Basic user information")
 
 
 class Token(BaseModel):

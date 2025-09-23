@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta, timezone, datetime
 
-from app.dao.user import user_crud
+from app.dao.user import user_dao
 from app.core.config import settings
 from app.entity.user import UserEntity
 from app.core.security import create_access_token
@@ -34,7 +34,7 @@ class AuthService:
             HTTPException: If registration fails
         """
         try:
-            user = await user_crud.create(db, obj_in=user_data)
+            user = await user_dao.create(db, obj_in=user_data)
             logger.info(f"New user registered: {user.email}")
             return UserResponse.model_validate(user.to_dict()).model_dump(
                 mode="json", exclude_none=True
@@ -64,41 +64,56 @@ class AuthService:
         Raises:
             HTTPException: If authentication fails
         """
-        # Authenticate user
-        user = await user_crud.authenticate(
-            db, email=login_data.email, password=login_data.password
-        )
-
-        if not user:
-            logger.warning(f"Failed login attempt for email: {login_data.email}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
-                headers={"WWW-Authenticate": "Bearer"},
+        try:
+            # Authenticate user
+            user = await user_dao.authenticate(
+                db, email=login_data.email, password=login_data.password
             )
 
-        if not user.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user account"
+            if not user:
+                logger.warning(f"Failed login attempt for email: {login_data.email}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect email or password",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Inactive user account",
+                )
+
+            # Generate access token
+            access_token_expires = timedelta(
+                minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+            )
+            access_token = create_access_token(
+                user_id=user.user_id, expires_delta=access_token_expires
             )
 
-        # Generate access token
-        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            user_id=user.user_id, expires_delta=access_token_expires
-        )
+            # Update last login
+            await self._update_last_login(db, user)
+            await db.refresh(user)
 
-        # Update last login
-        await self._update_last_login(db, user)
+            logger.info(f"Successful login for user: {user.email}")
 
-        logger.info(f"Successful login for user: {user.email}")
+            return LoginResponse(
+                access_token=access_token,
+                token_type="bearer",
+                expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+                * 60,  # Convert to seconds
+                user=UserResponse.model_validate(user.to_dict()),
+            ).model_dump(mode="json", exclude_none=True)
 
-        return LoginResponse(
-            access_token=access_token,
-            token_type="bearer",
-            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
-            user=UserResponse.model_validate(user.to_dict()),
-        ).model_dump(mode="json", exclude_none=True)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"User Login failed: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Login failed",
+            )
 
     async def _update_last_login(self, db: AsyncSession, user: UserEntity) -> None:
         """Update user's last login timestamp."""
@@ -109,7 +124,6 @@ class AuthService:
                 .values(last_login=datetime.now(timezone.utc))
             )
             await db.execute(stmt)
-            await db.flush()
         except Exception as e:
             logger.warning(
                 f"Failed to update last login for user {user.user_id}: {str(e)}"

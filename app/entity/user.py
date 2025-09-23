@@ -50,4 +50,6 @@ class UserEntity(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<User id={self.id}, email={self.email}, full_name={self.full_name}>"
+        return (
+            f"<User id={self.user_id}, email={self.email}, full_name={self.full_name}>"
+        )
